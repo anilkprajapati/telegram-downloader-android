@@ -1,0 +1,48 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.harry.tgdownloader'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.harry.tgdownloader'
+        minSdk 29
+        targetSdk 35
+        versionCode 7
+        versionName '1.1'
+    }
+
+    // One fixed signing key, so every new build installs as an update and keeps the login.
+    signingConfigs {
+        debug {
+            storeFile file('release.keystore')
+            storePassword System.getenv('KEYSTORE_PASSWORD') ?: 'android'
+            keyAlias 'telegramdownloader'
+            keyPassword System.getenv('KEYSTORE_PASSWORD') ?: 'android'
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.github.fazilus:tdlib-android:1.8.61'
+}
