@@ -15,6 +15,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.Calendar;
 import java.util.Locale;
@@ -60,7 +61,10 @@ public class MainActivity extends Activity implements TgManager.Listener {
 
         Button update = new Button(this);
         update.setText("Check for update");
-        update.setOnClickListener(v -> UpdateChecker.check(this, true));
+        update.setOnClickListener(v -> {
+            tell("Checking for update...");
+            UpdateChecker.check(this, true);
+        });
         root.addView(update);
 
         statusText = new TextView(this);
@@ -123,10 +127,16 @@ public class MainActivity extends Activity implements TgManager.Listener {
         start.setOnClickListener(v -> start());
         Button stop = new Button(this);
         stop.setText("Stop");
-        stop.setOnClickListener(v -> TgManager.get().stopDownloads());
+        stop.setOnClickListener(v -> {
+            tell("Stopping downloads...");
+            TgManager.get().stopDownloads();
+        });
         Button logout = new Button(this);
         logout.setText("Logout");
-        logout.setOnClickListener(v -> TgManager.get().logOut());
+        logout.setOnClickListener(v -> {
+            tell("Logging out...");
+            TgManager.get().logOut();
+        });
         buttons.addView(start);
         buttons.addView(stop);
         buttons.addView(logout);
@@ -224,7 +234,12 @@ public class MainActivity extends Activity implements TgManager.Listener {
                 .apply();
     }
 
+    private void tell(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
     private void connect() {
+        tell("Connecting...");
         saveSettings();
         String apiId = apiIdBox.getText().toString().trim();
         String apiHash = apiHashBox.getText().toString().trim();
@@ -239,6 +254,7 @@ public class MainActivity extends Activity implements TgManager.Listener {
     }
 
     private void next() {
+        tell("Sending...");
         String text = inputBox.getText().toString().trim();
         String state = TgManager.get().getAuthState();
         if ("phone".equals(state)) {
@@ -254,6 +270,7 @@ public class MainActivity extends Activity implements TgManager.Listener {
     }
 
     private void start() {
+        tell("Starting downloads...");
         saveSettings();
         String apiId = apiIdBox.getText().toString().trim();
         String apiHash = apiHashBox.getText().toString().trim();
