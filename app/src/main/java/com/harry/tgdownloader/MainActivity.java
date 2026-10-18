@@ -38,6 +38,8 @@ public class MainActivity extends Activity implements TgManager.Listener {
     private EditText minBox;
     private EditText maxBox;
     private SharedPreferences prefs;
+    private Button startButton;
+    private Button stopButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -130,13 +132,17 @@ public class MainActivity extends Activity implements TgManager.Listener {
         stop.setOnClickListener(v -> {
             tell("Stopping downloads...");
             TgManager.get().stopDownloads();
+            updateButtons();
         });
         Button logout = new Button(this);
         logout.setText("Logout");
         logout.setOnClickListener(v -> {
             tell("Logging out...");
             TgManager.get().logOut();
+            updateButtons();
         });
+        startButton = start;
+        stopButton = stop;
         buttons.addView(start);
         buttons.addView(stop);
         buttons.addView(logout);
@@ -210,6 +216,7 @@ public class MainActivity extends Activity implements TgManager.Listener {
     protected void onResume() {
         super.onResume();
         TgManager.get().setListener(this);
+        updateButtons();
     }
 
     @Override
@@ -232,6 +239,17 @@ public class MainActivity extends Activity implements TgManager.Listener {
                 .putString("min_mb", minBox.getText().toString().trim())
                 .putString("max_mb", maxBox.getText().toString().trim())
                 .apply();
+    }
+
+    /** Start is locked while downloads run; Stop unlocks it. */
+    private void updateButtons() {
+        boolean running = TgManager.get().isRunning();
+        if (startButton != null) {
+            startButton.setEnabled(!running);
+        }
+        if (stopButton != null) {
+            stopButton.setEnabled(running);
+        }
     }
 
     private void tell(String message) {
@@ -281,6 +299,7 @@ public class MainActivity extends Activity implements TgManager.Listener {
         startService(true);
         TgManager.get().init(getApplicationContext(), apiId, apiHash);
         TgManager.get().startDownloads();
+        updateButtons();
     }
 
     /** Keeps the app running in the background, so downloads continue with the screen off. */
@@ -292,7 +311,10 @@ public class MainActivity extends Activity implements TgManager.Listener {
 
     @Override
     public void onLog(String message) {
-        runOnUiThread(() -> appendLog(message));
+        runOnUiThread(() -> {
+            appendLog(message);
+            updateButtons();
+        });
     }
 
     @Override
