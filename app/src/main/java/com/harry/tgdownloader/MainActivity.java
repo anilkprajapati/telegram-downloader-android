@@ -148,6 +148,16 @@ public class MainActivity extends Activity implements TgManager.Listener {
         buttons.addView(logout);
         root.addView(buttons);
 
+        Button quit = new Button(this);
+        quit.setText("Quit");
+        quit.setOnClickListener(v -> {
+            tell("Quitting...");
+            TgManager.get().stopDownloads();
+            stopService(new Intent(this, DownloadService.class));
+            finishAffinity();
+        });
+        root.addView(quit);
+
         logText = new TextView(this);
         logText.setGravity(Gravity.TOP);
         root.addView(logText);
