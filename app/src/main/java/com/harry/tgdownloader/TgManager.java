@@ -64,6 +64,7 @@ public class TgManager {
     private boolean running = false;
     private boolean pendingStart = false;
     private long myUserId = 0;
+    private long savedChatId = 0;
     private final Map<Long, String> chats = new LinkedHashMap<>();
     private final ArrayDeque<Item> queue = new ArrayDeque<>();
     private Item active = null;
@@ -155,6 +156,10 @@ public class TgManager {
             log("Log in first. Downloads start after login.");
             return;
         }
+        if (running) {
+            log("Already running.");
+            return;
+        }
         if (myUserId == 0) {
             fetchMe();
             pendingStart = true;
@@ -199,9 +204,19 @@ public class TgManager {
                 synchronized (TgManager.this) {
                     myUserId = ((TdApi.User) result).id;
                 }
-                if (pendingStart) {
-                    startDownloads();
-                }
+                TdApi.CreatePrivateChat create = new TdApi.CreatePrivateChat();
+                create.userId = myUserId;
+                create.force = true;
+                client.send(create, saved -> {
+                    if (saved instanceof TdApi.Chat) {
+                        synchronized (TgManager.this) {
+                            savedChatId = ((TdApi.Chat) saved).id;
+                        }
+                    }
+                    if (pendingStart) {
+                        startDownloads();
+                    }
+                });
             } else {
                 log("Could not read your account: " + ((TdApi.Error) result).message);
             }
@@ -421,7 +436,7 @@ public class TgManager {
 
     private void forwardCopy(TdApi.Message message, long chatId, TdApi.File file, String name, String key) {
         TdApi.ForwardMessages request = new TdApi.ForwardMessages();
-        request.chatId = myUserId;
+        request.chatId = savedChatId != 0 ? savedChatId : myUserId;
         request.fromChatId = chatId;
         request.messageIds = new long[]{message.id};
         client.send(request, result -> {
