@@ -154,6 +154,7 @@ public class MainActivity extends Activity implements TgManager.Listener {
 
         outer.addView(root);
         setContentView(outer);
+        plainButtons(root);
         outer.post(() -> outer.scrollTo(0, 0));
         setTitle("Telegram Downloader " + BuildConfig.VERSION_NAME);
 
@@ -239,6 +240,20 @@ public class MainActivity extends Activity implements TgManager.Listener {
                 .putString("min_mb", minBox.getText().toString().trim())
                 .putString("max_mb", maxBox.getText().toString().trim())
                 .apply();
+    }
+
+    /** Removes the highlight and press animation that stay on buttons after a tap. */
+    private void plainButtons(android.view.View view) {
+        if (view instanceof Button) {
+            view.setFocusable(false);
+            view.setFocusableInTouchMode(false);
+            view.setStateListAnimator(null);
+        } else if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                plainButtons(group.getChildAt(i));
+            }
+        }
     }
 
     /** Start is locked while downloads run; Stop unlocks it. */
