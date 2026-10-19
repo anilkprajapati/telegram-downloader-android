@@ -435,6 +435,37 @@ public class TgManager {
     // ---------- copy to Saved Messages, then download ----------
 
     private void forwardCopy(TdApi.Message message, long chatId, TdApi.File file, String name, String key) {
+        TdApi.GetChatHistory history = new TdApi.GetChatHistory();
+        history.chatId = savedChatId != 0 ? savedChatId : myUserId;
+        history.fromMessageId = 0;
+        history.offset = 0;
+        history.limit = 100;
+        history.onlyLocal = false;
+        client.send(history, result -> {
+            synchronized (TgManager.this) {
+                if (result instanceof TdApi.Messages) {
+                    for (TdApi.Message savedMsg : ((TdApi.Messages) result).messages) {
+                        TdApi.File savedFile = fileOf(savedMsg.content);
+                        if (savedFile != null && key.equals(keyOf(savedFile))) {
+                            log("Already in Saved Messages, not copied again: " + name);
+                            if (settings.getBoolean("forward_only", false)) {
+                                downloaded.add(key);
+                                persistDone();
+                                inFlight.remove(key);
+                            } else {
+                                queue.add(new Item(savedFile.id, name, key));
+                                pump();
+                            }
+                            return;
+                        }
+                    }
+                }
+            }
+            sendForward(message, chatId, file, name, key);
+        });
+    }
+
+    private void sendForward(TdApi.Message message, long chatId, TdApi.File file, String name, String key) {
         TdApi.ForwardMessages request = new TdApi.ForwardMessages();
         request.chatId = savedChatId != 0 ? savedChatId : myUserId;
         request.fromChatId = chatId;
@@ -467,7 +498,6 @@ public class TgManager {
             }
         });
     }
-
     private synchronized void pump() {
         if (!running || active != null || queue.isEmpty()) {
             return;
