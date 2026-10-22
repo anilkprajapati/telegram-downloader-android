@@ -49,7 +49,7 @@ public class MainActivity extends Activity implements TgManager.Listener {
         outer = new ScrollView(this);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(32, 160, 32, 32);
+        root.setPadding(32, 160, 32, 320);
 
         TextView version = new TextView(this);
         version.setText("Version " + BuildConfig.VERSION_NAME + " (build " + BuildConfig.VERSION_CODE + ")");
