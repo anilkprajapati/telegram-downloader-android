@@ -102,6 +102,16 @@ public class MainActivity extends Activity implements TgManager.Listener {
         root.addView(todayOnly);
         fromNow = check("Only files posted from now on (skip old files)", prefs.getBoolean("from_now", false));
         root.addView(fromNow);
+        todayOnly.setOnCheckedChangeListener((button, checked) -> {
+            if (checked) {
+                fromNow.setChecked(false);
+            }
+        });
+        fromNow.setOnCheckedChangeListener((button, checked) -> {
+            if (checked) {
+                todayOnly.setChecked(false);
+            }
+        });
         forwardOnly = check("Only copy to Saved Messages (do not download to phone)",
                 prefs.getBoolean("forward_only", false));
         root.addView(forwardOnly);
@@ -160,6 +170,7 @@ public class MainActivity extends Activity implements TgManager.Listener {
 
         logText = new TextView(this);
         logText.setGravity(Gravity.TOP);
+        logText.setTextIsSelectable(true);
         root.addView(logText);
 
         outer.addView(root);
