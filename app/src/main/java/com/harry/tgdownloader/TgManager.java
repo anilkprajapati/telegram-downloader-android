@@ -470,6 +470,7 @@ public class TgManager {
         request.chatId = savedChatId != 0 ? savedChatId : myUserId;
         request.fromChatId = chatId;
         request.messageIds = new long[]{message.id};
+        request.sendCopy = true;
         client.send(request, result -> {
             synchronized (TgManager.this) {
                 if (result instanceof TdApi.Error) {
