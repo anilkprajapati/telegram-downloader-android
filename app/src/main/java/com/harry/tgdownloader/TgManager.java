@@ -165,6 +165,15 @@ public class TgManager {
             pendingStart = true;
             return;
         }
+        if (!savedScanned) {
+            pendingStart = true;
+            if (!savedScanning) {
+                savedScanning = true;
+                log("Checking Saved Messages first...");
+                scanSaved(savedChatId != 0 ? savedChatId : myUserId, 0);
+            }
+            return;
+        }
         pendingStart = false;
         running = true;
         chats.clear();
@@ -434,35 +443,57 @@ public class TgManager {
 
     // ---------- copy to Saved Messages, then download ----------
 
-    private void forwardCopy(TdApi.Message message, long chatId, TdApi.File file, String name, String key) {
+    private final Map<String, Integer> savedFileIds = new LinkedHashMap<>();
+    private boolean savedScanning = false;
+    private boolean savedScanned = false;
+
+    /** Reads every message in Saved Messages once, so a file already there is never copied again. */
+    private void scanSaved(long savedId, long fromMessageId) {
         TdApi.GetChatHistory history = new TdApi.GetChatHistory();
-        history.chatId = savedChatId != 0 ? savedChatId : myUserId;
-        history.fromMessageId = 0;
+        history.chatId = savedId;
+        history.fromMessageId = fromMessageId;
         history.offset = 0;
         history.limit = 100;
         history.onlyLocal = false;
         client.send(history, result -> {
             synchronized (TgManager.this) {
-                if (result instanceof TdApi.Messages) {
-                    for (TdApi.Message savedMsg : ((TdApi.Messages) result).messages) {
-                        TdApi.File savedFile = fileOf(savedMsg.content);
-                        if (savedFile != null && key.equals(keyOf(savedFile))) {
-                            log("Already in Saved Messages, not copied again: " + name);
-                            if (settings.getBoolean("forward_only", false)) {
-                                downloaded.add(key);
-                                persistDone();
-                                inFlight.remove(key);
-                            } else {
-                                queue.add(new Item(savedFile.id, name, key));
-                                pump();
-                            }
-                            return;
-                        }
+                if (!(result instanceof TdApi.Messages) || ((TdApi.Messages) result).messages.length == 0) {
+                    savedScanned = true;
+                    savedScanning = false;
+                    log("Checked " + savedFileIds.size() + " file(s) already in Saved Messages.");
+                    if (pendingStart) {
+                        startDownloads();
+                    }
+                    return;
+                }
+                long last = 0;
+                for (TdApi.Message savedMsg : ((TdApi.Messages) result).messages) {
+                    last = savedMsg.id;
+                    TdApi.File savedFile = fileOf(savedMsg.content);
+                    if (savedFile != null) {
+                        savedFileIds.put(keyOf(savedFile), savedFile.id);
                     }
                 }
+                scanSaved(savedId, last);
             }
-            sendForward(message, chatId, file, name, key);
         });
+    }
+
+    private void forwardCopy(TdApi.Message message, long chatId, TdApi.File file, String name, String key) {
+        Integer existingFileId = savedFileIds.get(key);
+        if (existingFileId != null) {
+            log("Already in Saved Messages, not copied again: " + name);
+            if (settings.getBoolean("forward_only", false)) {
+                downloaded.add(key);
+                persistDone();
+                inFlight.remove(key);
+            } else {
+                queue.add(new Item(existingFileId, name, key));
+                pump();
+            }
+            return;
+        }
+        sendForward(message, chatId, file, name, key);
     }
 
     private void sendForward(TdApi.Message message, long chatId, TdApi.File file, String name, String key) {
@@ -480,19 +511,20 @@ public class TgManager {
                     return;
                 }
                 log("Copied to Saved Messages: " + name);
-                if (settings.getBoolean("forward_only", false)) {
-                    downloaded.add(key);
-                    persistDone();
-                    inFlight.remove(key);
-                    return;
-                }
-                TdApi.File copyFile = file;
                 TdApi.Messages copies = (TdApi.Messages) result;
+                TdApi.File copyFile = file;
                 if (copies.messages.length > 0 && copies.messages[0] != null) {
                     TdApi.File f = fileOf(copies.messages[0].content);
                     if (f != null) {
                         copyFile = f;
                     }
+                }
+                savedFileIds.put(key, copyFile.id);
+                if (settings.getBoolean("forward_only", false)) {
+                    downloaded.add(key);
+                    persistDone();
+                    inFlight.remove(key);
+                    return;
                 }
                 queue.add(new Item(copyFile.id, name, key));
                 pump();
