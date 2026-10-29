@@ -49,7 +49,8 @@ public class MainActivity extends Activity implements TgManager.Listener {
         outer = new ScrollView(this);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(32, 160, 32, 320);
+        float density = getResources().getDisplayMetrics().density;
+        root.setPadding(32, (int) (density * 96), 32, (int) (density * 160));
 
         TextView version = new TextView(this);
         version.setText("Version " + BuildConfig.VERSION_NAME + " (build " + BuildConfig.VERSION_CODE + ")");
@@ -95,6 +96,22 @@ public class MainActivity extends Activity implements TgManager.Listener {
         chatsBox = field("@group1, @channel2 (public usernames)");
         chatsBox.setSingleLine(false);
         chatsBox.setText(prefs.getString("chats", ""));
+        EditText addBox = field("Type @username, then press Add");
+        root.addView(addBox);
+        Button add = new Button(this);
+        add.setText("Add");
+        add.setOnClickListener(v -> {
+            String name = addBox.getText().toString().trim().replace("https://t.me/", "").replace("t.me/", "");
+            if (name.isEmpty()) {
+                tell("Type a @username first");
+                return;
+            }
+            String current = chatsBox.getText().toString().trim();
+            chatsBox.setText(current.isEmpty() ? name : current + ", " + name);
+            addBox.setText("");
+            tell("Added " + name);
+        });
+        root.addView(add);
         root.addView(chatsBox);
 
         root.addView(section("Options"));
