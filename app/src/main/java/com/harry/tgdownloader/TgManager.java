@@ -308,6 +308,14 @@ public class TgManager {
     // ---------- TDLib updates ----------
 
     private void onUpdate(TdApi.Object object) {
+        try {
+            handleUpdate(object);
+        } catch (Exception e) {
+            log("Internal error, continuing: " + e);
+        }
+    }
+
+    private void handleUpdate(TdApi.Object object) {
         if (object instanceof TdApi.UpdateAuthorizationState) {
             handleAuth(((TdApi.UpdateAuthorizationState) object).authorizationState);
         } else if (object instanceof TdApi.UpdateNewMessage) {
