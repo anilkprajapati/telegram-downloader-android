@@ -4,6 +4,8 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 
 import org.drinkless.tdlib.Client;
@@ -63,6 +65,21 @@ public class TgManager {
     private String authState = "none";
     private boolean running = false;
     private boolean pendingStart = false;
+    private volatile long lastActivity = System.currentTimeMillis();
+    private final Handler heartbeat = new Handler(Looper.getMainLooper());
+    private final Runnable beat = new Runnable() {
+        @Override
+        public void run() {
+            if (running && client != null) {
+                long idle = System.currentTimeMillis() - lastActivity;
+                client.send(new TdApi.GetMe(), result -> lastActivity = System.currentTimeMillis());
+                if (idle > 10L * 60 * 1000) {
+                    log("No activity for " + (idle / 60000) + " min. Check the internet connection.");
+                }
+            }
+            heartbeat.postDelayed(this, 2L * 60 * 1000);
+        }
+    };
     private long myUserId = 0;
     private long savedChatId = 0;
     private final Map<Long, String> chats = new LinkedHashMap<>();
@@ -83,6 +100,7 @@ public class TgManager {
         downloaded.addAll(done.getStringSet("ids", new HashSet<String>()));
         if (client == null) {
             client = Client.create(this::onUpdate, null, null);
+            heartbeat.postDelayed(beat, 60L * 1000);
         }
     }
 
@@ -308,6 +326,7 @@ public class TgManager {
     // ---------- TDLib updates ----------
 
     private void onUpdate(TdApi.Object object) {
+        lastActivity = System.currentTimeMillis();
         try {
             handleUpdate(object);
         } catch (Exception e) {

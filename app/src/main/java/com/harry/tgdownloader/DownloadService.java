@@ -8,11 +8,13 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.PowerManager;
 
 /** Keeps the app running in the background so downloads continue with the screen off. */
 public class DownloadService extends Service {
 
     private static final String CHANNEL_ID = "tg_downloads";
+    private PowerManager.WakeLock wakeLock;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -27,6 +29,11 @@ public class DownloadService extends Service {
                 .setOngoing(true)
                 .build();
         startForeground(1, notification);
+        if (wakeLock == null) {
+            PowerManager power = getSystemService(PowerManager.class);
+            wakeLock = power.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TelegramDownloader:downloads");
+            wakeLock.acquire();
+        }
 
         SharedPreferences settings = getSharedPreferences("tg_settings", MODE_PRIVATE);
         String apiId = settings.getString("api_id", "");
@@ -41,6 +48,14 @@ public class DownloadService extends Service {
             }
         }
         return START_STICKY;
+    }
+
+    @Override
+    public void onDestroy() {
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+        }
+        super.onDestroy();
     }
 
     @Override
