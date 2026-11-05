@@ -254,6 +254,10 @@ public class MainActivity extends Activity implements TgManager.Listener {
     @Override
     protected void onResume() {
         super.onResume();
+        logText.setText("");
+        for (String line : TgManager.get().recentLog()) {
+            logText.append(line + "\n");
+        }
         TgManager.get().setListener(this);
         updateButtons();
     }

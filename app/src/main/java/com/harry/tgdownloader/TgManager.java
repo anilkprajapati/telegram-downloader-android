@@ -119,9 +119,25 @@ public class TgManager {
         return running;
     }
 
+    private final List<String> logLines = new ArrayList<>();
+
     private void log(String message) {
+        String line = "[" + new java.text.SimpleDateFormat("HH:mm:ss", Locale.US).format(new java.util.Date()) + "] " + message;
+        synchronized (logLines) {
+            logLines.add(line);
+            while (logLines.size() > 500) {
+                logLines.remove(0);
+            }
+        }
         if (listener != null) {
-            listener.onLog(message);
+            listener.onLog(line);
+        }
+    }
+
+    /** Log lines kept while the app runs, so they can be shown when the app is opened again. */
+    public List<String> recentLog() {
+        synchronized (logLines) {
+            return new ArrayList<>(logLines);
         }
     }
 
