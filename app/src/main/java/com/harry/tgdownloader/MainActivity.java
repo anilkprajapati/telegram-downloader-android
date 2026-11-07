@@ -405,6 +405,11 @@ public class MainActivity extends Activity implements TgManager.Listener {
         });
     }
 
+    /** Shows a message at the top of the log, the same place as the newest log lines. */
+    private void appendLog(String message) {
+        logText.setText(message + "\n" + logText.getText());
+    }
+
     /** Shows the log with the newest line at the top. */
     private void renderLog() {
         java.util.List<String> lines = TgManager.get().recentLog();
