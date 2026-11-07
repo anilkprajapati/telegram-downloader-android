@@ -141,6 +141,13 @@ public class TgManager {
         }
     }
 
+    /** Forgets the log, for example when the user quits the app. */
+    public void clearLog() {
+        synchronized (logLines) {
+            logLines.clear();
+        }
+    }
+
     private void setAuthState(String state) {
         authState = state;
         if (listener != null) {

@@ -25,6 +25,7 @@ public class MainActivity extends Activity implements TgManager.Listener {
     private ScrollView outer;
     private TextView statusText;
     private TextView logText;
+    private ScrollView logScroll;
     private EditText apiIdBox;
     private EditText apiHashBox;
     private EditText inputBox;
@@ -180,6 +181,7 @@ public class MainActivity extends Activity implements TgManager.Listener {
         quit.setOnClickListener(v -> {
             tell("Quitting...");
             TgManager.get().stopDownloads();
+            TgManager.get().clearLog();
             stopService(new Intent(this, DownloadService.class));
             finishAffinity();
         });
@@ -188,7 +190,11 @@ public class MainActivity extends Activity implements TgManager.Listener {
         logText = new TextView(this);
         logText.setGravity(Gravity.TOP);
         logText.setTextIsSelectable(true);
-        root.addView(logText);
+        logScroll = new ScrollView(this);
+        logScroll.setVerticalScrollBarEnabled(true);
+        logScroll.addView(logText);
+        root.addView(logScroll, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, (int) (density * 360)));
 
         outer.addView(root);
         setContentView(outer);
@@ -254,10 +260,7 @@ public class MainActivity extends Activity implements TgManager.Listener {
     @Override
     protected void onResume() {
         super.onResume();
-        logText.setText("");
-        for (String line : TgManager.get().recentLog()) {
-            logText.append(line + "\n");
-        }
+        renderLog();
         TgManager.get().setListener(this);
         updateButtons();
     }
@@ -369,7 +372,7 @@ public class MainActivity extends Activity implements TgManager.Listener {
     @Override
     public void onLog(String message) {
         runOnUiThread(() -> {
-            appendLog(message);
+            renderLog();
             updateButtons();
         });
     }
@@ -402,7 +405,13 @@ public class MainActivity extends Activity implements TgManager.Listener {
         });
     }
 
-    private void appendLog(String message) {
-        logText.append(message + "\n");
+    /** Shows the log with the newest line at the top. */
+    private void renderLog() {
+        java.util.List<String> lines = TgManager.get().recentLog();
+        StringBuilder text = new StringBuilder();
+        for (int i = lines.size() - 1; i >= 0; i--) {
+            text.append(lines.get(i)).append('\n');
+        }
+        logText.setText(text.toString());
     }
 }
