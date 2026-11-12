@@ -522,6 +522,7 @@ public class TgManager {
                     TdApi.File savedFile = fileOf(savedMsg.content);
                     if (savedFile != null) {
                         savedFileIds.put(keyOf(savedFile), savedFile.id);
+                        savedFileIds.put(nameKey(nameOf(savedMsg.content, savedMsg.id), savedFile.size), savedFile.id);
                     }
                 }
                 scanSaved(savedId, last);
@@ -529,8 +530,16 @@ public class TgManager {
         });
     }
 
+    /** Copies get new Telegram IDs, so a file with the same name and size also counts as saved. */
+    private static String nameKey(String name, long size) {
+        return "ns:" + name + ":" + size;
+    }
+
     private void forwardCopy(TdApi.Message message, long chatId, TdApi.File file, String name, String key) {
         Integer existingFileId = savedFileIds.get(key);
+        if (existingFileId == null) {
+            existingFileId = savedFileIds.get(nameKey(name, file.size));
+        }
         if (existingFileId != null) {
             log("Already in Saved Messages, not copied again: " + name);
             if (settings.getBoolean("forward_only", false)) {
@@ -570,6 +579,7 @@ public class TgManager {
                     }
                 }
                 savedFileIds.put(key, copyFile.id);
+                savedFileIds.put(nameKey(name, file.size), copyFile.id);
                 if (settings.getBoolean("forward_only", false)) {
                     downloaded.add(key);
                     persistDone();
